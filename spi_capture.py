@@ -42,7 +42,7 @@ def print_bitstream_stats(bits: np.ndarray, elapsed_s: float) -> None:
     print(f"  Measured bit rate   : {bit_rate:,.1f} Hz  (target: {SPI_CLOCK_HZ:,} Hz)")
     print(f"  Ones                : {ones:,}  ({100*ones/n_bits:.2f}%)")
     print(f"  Zeros               : {zeros:,}  ({100*zeros/n_bits:.2f}%)")
-    print(f"  Ones density        : {density:.5f}  → Vin ≈ {density*5.0:.4f} V (if Vref=2.5V, supply=5V)")
+    print(f"  Ones density        : {density:.5f}  → Vin ≈ {density*5.0:.4f} V (if Vref=1.65V, supply=3V)")
     print(f"──────────────────────────────────────────────────────────\n")
 
     # First 64 bits as a visual sanity check
