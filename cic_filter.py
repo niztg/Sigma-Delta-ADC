@@ -44,3 +44,43 @@ def decimate_cic(bits: np.ndarray, R: int = 256, N: int = 3, invert: bool = True
 
     x = x / (R**N)
     return x
+
+def ones_density_to_estimate(bits: np.ndarray, invert: bool = True) -> float:
+    x = bits_to_pm1(bits, invert=invert)
+    return float(np.mean(x))
+
+def estimate_to_voltage(estimate: float, V_ref: float = 1.65, full_scale: float = 1.65) -> float:
+    return V_ref + estimate * full_scale
+
+if __name__ == "__main__":
+    path = sys.argv[1] if len(sys.argv) > 1 else "bitstream_raw.npy"
+    bits = np.load(path)
+ 
+    print(f"Loaded {len(bits)} bits from {path}")
+ 
+    # Quick sanity check against spi_capture.py's own reported ones density
+    raw_ones_density = float(np.mean(bits))
+    print(f"Raw ones density        : {raw_ones_density:.5f}")
+ 
+    quick_est = ones_density_to_estimate(bits, invert=True)
+    quick_v = estimate_to_voltage(quick_est)
+    print(f"Whole-buffer estimate    : {quick_est:+.5f}  -> Vin ~ {quick_v:.4f} V")
+ 
+    out = decimate_cic(bits, R=256, N=3, invert=True)
+    print(f"CIC output: {len(out)} samples at ~200 Hz")
+ 
+    if len(out) > 0:
+        voltages = estimate_to_voltage(out)
+        print(f"  mean   : {np.mean(out):+.5f}  -> {np.mean(voltages):.4f} V")
+        print(f"  std    : {np.std(out):.5f}   (proxy for output noise/ripple)")
+        print(f"  min/max: {np.min(out):+.5f} / {np.max(out):+.5f}")
+ 
+        # crude SNR-ish figure: mean-squared signal vs variance around it,
+        # useful as a relative number across captures even before a proper
+        # SNR measurement with a known sinusoidal input.
+        signal_power = np.mean(out) ** 2
+        noise_power = np.var(out)
+        if noise_power > 0:
+            snr_db = 10 * np.log10(signal_power / noise_power) if signal_power > 0 else float("-inf")
+            print(f"  crude DC SNR proxy: {snr_db:.1f} dB (mean^2 / variance; "
+                  f"not a real AC SNR measurement, just a relative noise indicator)")
