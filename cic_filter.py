@@ -1,9 +1,9 @@
 """
 Design Specs:
 Bandwidth:          200 Hz
-OSR:                256
+OSR:                128
 Bit rate:           51.2 kHz
-Decimation factor:  256
+Decimation factor:  128
 CIC order (N):      3
 """
 
@@ -22,7 +22,7 @@ def bits_to_pm1(bits: np.ndarray, invert: bool = True) -> np.ndarray:
 
     return 2.0 * bits - 1.0 # map: {0,1} -> {-1,1}
 
-def decimate_cic(bits: np.ndarray, R: int = 256, N: int = 3, invert: bool = True) -> np.ndarray:
+def decimate_cic(bits: np.ndarray, R: int = 128, N: int = 3, invert: bool = True) -> np.ndarray:
     """
     Decimates a noisy bitstream (51.2 kHz) by pulling one out of every R samples.
     Stages:
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     quick_v = estimate_to_voltage(quick_est)
     print(f"Whole-buffer estimate    : {quick_est:+.5f}  -> Vin ~ {quick_v:.4f} V")
  
-    out = decimate_cic(bits, R=256, N=3, invert=True)
+    out = decimate_cic(bits, R=128, N=3, invert=True)
     print(f"CIC output: {len(out)} samples at ~200 Hz")
  
     if len(out) > 0:
