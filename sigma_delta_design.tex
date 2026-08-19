@@ -1,0 +1,105 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{siunitx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{circuitikz}
+\usetikzlibrary{positioning}
+
+\onehalfspacing
+
+\geometry{margin=2.5cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\sisetup{per-mode=symbol}
+
+\title{A Discrete-Component Second-Order CT Sigma-Delta ADC Design}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────
+\section{Overview}
+\label{section:overview}
+
+In the sigma-delta ($\Delta\Sigma$) ADC topology, a quantizer produces a stream of coarse 1-bit decisions, each of which is fed back through a 1-bit DAC into the loop's cascaded integrators, shaping the input to subsequent decisions. Because resolution is built up from many such decisions rather than a single high-precision comparison, a $\Delta\Sigma$ ADC trades conversion latency for resolution relative to a SAR ADC, which resolves a full-precision word in a single conversion cycle.
+This report documents a second-order continuous-time sigma-delta ADC, designed and tested in
+LTspice before discrete breadboard implementation using physical components. The target specifications
+for the design are listed in Table~\ref{tab:specs}.
+
+\begin{table}[H]
+    \centering
+    \caption{Design Specifications}
+    \label{tab:specs}
+    \begin{tabular}{@{}ll@{}}
+        \toprule
+        Parameter & Value \\
+        \midrule
+        Signal Bandwidth & \qty{200}{\hertz} \\
+        Oversampling Ratio (OSR) & 128 \\
+        Sample Rate & \qty{51.2}{\kilo\hertz} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% ─────────────────────────────────────────────
+\section{Architecture}
+\label{section:architecture}
+
+
+
+% ─────────────────────────────────────────────
+\section{Bring-Up Methodology}
+\label{section:bring_up}
+
+% ------------------------------------------------------------
+\subsection{Root Cause: DAC Sign Error}
+\label{section:dac_sign_error}
+
+% ------------------------------------------------------------
+\subsection{Debugging Highlight: Instrumentation Artefacts}
+\label{section:instrumentation_artefacts}
+
+% ------------------------------------------------------------
+\section{Results}
+\label{section:results}
+
+% ------------------------------------------------------------
+\section{Limitations}
+\label{section:limitations}
+
+% ------------------------------------------------------------
+\section{Next Steps}
+\label{section:next_steps}
+
+% ------------------------------------------------------------
+\addcontentsline{toc}{section}{References}
+\begin{thebibliography}{9}
+\end{thebibliography}
+
+% ------------------------------------------------------------
+\appendix
+
+\section{Source Code and Reproducibility}
+\label{appendix:source}
+
+\end{document}

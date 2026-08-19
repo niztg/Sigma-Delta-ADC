@@ -1,0 +1,10 @@
+\contentsline {section}{\numberline {1}Overview}{2}{section.1}%
+\contentsline {section}{\numberline {2}Architecture}{2}{section.2}%
+\contentsline {section}{\numberline {3}Bring-Up Methodology}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Root Cause: DAC Sign Error}{2}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Debugging Highlight: Instrumentation Artefacts}{2}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Results}{2}{section.4}%
+\contentsline {section}{\numberline {5}Limitations}{2}{section.5}%
+\contentsline {section}{\numberline {6}Next Steps}{2}{section.6}%
+\contentsline {section}{References}{2}{section.6}%
+\contentsline {section}{\numberline {A}Source Code and Reproducibility}{2}{appendix.A}%
