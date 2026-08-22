@@ -12,7 +12,8 @@
 \usepackage{float}
 \usepackage{setspace}
 \usepackage{circuitikz}
-\usetikzlibrary{positioning}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
 
 \onehalfspacing
 
@@ -27,7 +28,7 @@
 
 \sisetup{per-mode=symbol}
 
-\title{A Discrete-Component Second-Order CT Sigma-Delta ADC Design}
+\title{A Discrete-Component Second-Order CT $\Delta\Sigma$ ADC Design}
 \author{}
 \date{}
 
@@ -41,10 +42,94 @@
 \section{Overview}
 \label{section:overview}
 
-In the sigma-delta ($\Delta\Sigma$) ADC topology, a quantizer produces a stream of coarse 1-bit decisions, each of which is fed back through a 1-bit DAC into the loop's cascaded integrators, shaping the input to subsequent decisions. Because resolution is built up from many such decisions rather than a single high-precision comparison, a $\Delta\Sigma$ ADC trades conversion latency for resolution relative to a SAR ADC, which resolves a full-precision word in a single conversion cycle.
-This report documents a second-order continuous-time sigma-delta ADC, designed and tested in
+In the sigma-delta ($\Delta\Sigma$) ADC topology, a quantizer produces a stream of coarse 1-bit decisions, each of which is fed back through a 1-bit DAC into the loop's cascaded integrators, shaping the input to subsequent decisions. 
+The block diagram of the $\Delta\Sigma$ ADC is shown in figure~\ref{fig:block_diagram}.
+
+\begin{figure}[htbp]
+\begin{tikzpicture}[
+  scale=0.7, every node/.style={scale=0.7},
+  >={Stealth[length=3mm,width=2.5mm]},
+  block/.style={draw=black, fill=white,
+    minimum width=3.6cm, minimum height=1.5cm, line width=0.7pt, align=center},
+  flow/.style={-{>}, black, line width=0.7pt},
+  lbl/.style={black, font=\small}
+]
+ 
+% ------------------------------------------------------
+% Blocks
+% ------------------------------------------------------
+\node[block] (int1) at (0,0)
+  {{\bfseries\large Integrator 1}\\[2pt]
+   U1A, 10k/1nF};
+ 
+\node[block] (int2) at (5.2,0)
+  {{\bfseries\large Integrator 2}\\[2pt]
+   U1B, 10k/1nF};
+ 
+\node[block] (cmp1) at (10.4,0)
+  {{\bfseries\large Comparator 1}\\[2pt]
+   + hysteresis};
+ 
+\node[block] (inv) at (10.4,-4.2)
+  {{\bfseries\large Inverter}\\[2pt]
+   feeds Rfb2};
+ 
+% ------------------------------------------------------
+% Forward signal path
+% ------------------------------------------------------
+\draw[flow] ($(int1.west)+(-1.6,0)$) -- (int1.west)
+  node[pos=0,left,lbl,xshift=-0.1cm] {Vin};
+\draw[flow] (int1.east) -- (int2.west);
+\draw[flow] (int2.east) -- (cmp1.west);
+ 
+\coordinate (compOut) at ($(cmp1.east)+(0.5,0)$);
+\draw[flow] (cmp1.east) -- (compOut);
+\coordinate (branchPoint) at ($(compOut)+(0.5,0)$);
+\draw[black, line width=0.7pt] (compOut) -- (branchPoint);
+\draw[flow] (branchPoint) -- ++(0,1.6)
+  node[pos=1,above,lbl] {MISO};
+ 
+% ------------------------------------------------------
+% Comparator 1 output drives the inverter
+% ------------------------------------------------------
+\coordinate (cmp1DownX) at ($(cmp1.south)+(0,0)$);
+\draw[flow] (cmp1DownX) -- (inv.north)
+  node[pos=0.5, right, lbl, xshift=0.15cm] {drives inverter};
+ 
+% ------------------------------------------------------
+% Rfb2: Inverter output -> back up into Integrator 2's input
+% Routed on its own low rail, well clear of Comparator 1's
+% bottom edge, then rises straight into Integrator 2 from below.
+% ------------------------------------------------------
+\coordinate (invOut) at ($(inv.east)+(1.2,0)$);
+\draw[black, line width=0.7pt] (inv.east) -- (invOut);
+\coordinate (rfb2rail) at ($(invOut)+(0,1.8)$);
+\draw[black, line width=0.7pt] (invOut) -- (rfb2rail);
+\draw[black, line width=0.7pt] (rfb2rail) -- (rfb2rail -| int2.south)
+  node[pos=0.5, above, lbl, yshift=0.1cm] {Rfb2 (10k)};
+\draw[flow] (rfb2rail -| int2.south) -- (int2.south);
+ 
+% ------------------------------------------------------
+% Rfb1: Comparator 1 output (same busy node) -> all the way
+% back around to Integrator 1's input
+% ------------------------------------------------------
+\coordinate (rfb1Right) at ($(branchPoint)+(1.4,0)$);
+\draw[black, line width=0.7pt] (branchPoint) -- (rfb1Right);
+\coordinate (rfb1Bottom) at ($(rfb1Right)+(0,-7.0)$);
+\draw[black, line width=0.7pt] (rfb1Right) -- (rfb1Bottom);
+\draw[black, line width=0.7pt] (rfb1Bottom) -- (rfb1Bottom -| int1.south)
+  node[pos=0.5, below, lbl, yshift=-0.15cm] {Rfb1 (10k)};
+\draw[flow] (rfb1Bottom -| int1.south) -- (int1.south);
+\end{tikzpicture}
+\caption{Second-order CIFB $\Delta\Sigma$ modulator, block-level view. Comparator 1's decision is fed back through two separately-signed paths: directly via Rfb1 to Integrator 1, and through an inverting stage (Inverter) via Rfb2 to Integrator 2 --- the sign correction discussed in \S4.}
+\label{fig:block_diagram}
+\end{figure}
+
+The ones density of the bitstream, denoting the proportion of quantizer decisions resolved to logic 1 within a given interval, is a monotonic function of the input voltage centered around the comparator's reference voltage, $V_{\mathrm{ref}}$.
+Because resolution is built up from many decisions rather than a single high-precision comparison, a $\Delta\Sigma$ ADC trades conversion latency for resolution relative to a SAR ADC, which resolves a full-precision word in a single conversion cycle.
+This report documents a second-order continuous-time $\Delta \Sigma$ ADC, designed and tested in
 LTspice before discrete breadboard implementation using physical components. The target specifications
-for the design are listed in Table~\ref{tab:specs}.
+for the design are listed in table~\ref{tab:specs}.
 
 \begin{table}[H]
     \centering
@@ -61,11 +146,148 @@ for the design are listed in Table~\ref{tab:specs}.
     \end{tabular}
 \end{table}
 
+The cascade-of-integrators feedback (CIFB) topology is accomplished using the dual op-amp MCP6002, 
+followed by the LM393 comparator acting as the 1-bit quantizer, with the quantizer's decision fed back through two separately-signed 1-bit DAC paths, one direct and one inverted, to correctly close negative feedback around each integrator stage.
+The system has been fully brought-up and its closed-loop dynamics are verified and stable. A five-point input sweep from $\qty{1.23}{V}$ to $\qty{3.26}{V}$ correctly demonstrated
+a monotonic trend between effective ones density and input voltage without latching to either rail.
+
+Achieving this correct behavior is the subject of this report. This report documents the debugging process through which the $\Delta\Sigma$ ADC design was built on physical hardware, especially
+diagnosing and fixing a sign error which mistakenly caused positive feedback, and several instrumentation artifacts that initially presented as hardware faults. One known limitation remains open: occasional long runs of identical bits (limit cycles)
+near mid-scale, an expected consequence of the unclocked, free-running quantizer, with a known synchronous fix using the 74HC74 identified but deferred due to scope.
+
+
 % ─────────────────────────────────────────────
 \section{Architecture}
 \label{section:architecture}
 
+Figure~\ref{fig:circuit_schematic} shows the circuit-level schematic of the $\Delta\Sigma$ ADC.
 
+\begin{figure}[htbp]
+\begin{circuitikz}[scale=0.65, every node/.style={scale=0.65}] 
+\node[op amp] (U1A)  at (2,0)  {};
+\node[op amp] (U1B)  at (8,0)  {};
+\node[op amp] (CMP1) at (14,0) {};
+\node[op amp] (CMP2) at (20,0) {};
+ 
+\node[below=0.3cm of U1A]  {\footnotesize U1A};
+\node[below=0.3cm of U1B]  {\footnotesize U1B};
+ 
+% CMP1 / CMP2 output nodes, pulled 0.6 to the right of the
+% symbol's own output tip so pull-up/Rfb/MISO branches have
+% room without crowding the triangle. Both explicitly wired
+% back to the symbol's actual output -- this connection was
+% missing in the previous draft.
+\coordinate (N1) at ($(CMP1.out)+(0.6,0)$);
+\draw (CMP1.out) -- (N1);
+\draw (N1) node[circ]{};
+ 
+\coordinate (N2) at ($(CMP2.out)+(0.6,0)$);
+\draw (CMP2.out) -- (N2);
+\draw (N2) node[circ]{};
+ 
+% ------------------------------------------------------
+% Vin -> Rin1(10k) -> U1A.-   [MCP6002 pin2]
+% ------------------------------------------------------
+\draw (U1A.-) to[R, l={$R_{\mathrm{in1}}=\qty{10}{\kilo\ohm}$}, *-] ++(-2.4,0) node[left]{$V_{\mathrm{ref}}$};
+ 
+% ------------------------------------------------------
+% U1A.+ [pin3] -> Vref  (generic terminal, divider omitted)
+% ------------------------------------------------------
+\draw (U1A.+) -- ++(-0.9,0) -- ++(0,-2.5) node[ocirc, label={below:$V_{\mathrm{ref}}$}]{};
+ 
+% ------------------------------------------------------
+% U1A.out [pin1] -> jog -> Rin2 (to U1B.-) and Cint1 loop
+% ------------------------------------------------------
+\draw (U1A.out) -- (U1A.- -| U1A.out) coordinate(u1aJog);
+\draw (u1aJog) node[circ]{};
+\draw (u1aJog) to[R, l={$R_{\mathrm{in2}}=\qty{10}{\kilo\ohm}$}] (U1B.-);
+\draw (u1aJog) -- ++(0,1.0) coordinate(c1top);
+\draw (c1top) to[C] (c1top -| U1A.-) coordinate(c1land);
+\node[above=0.6cm] at ($(c1top)!0.5!(c1land)$) {$C_{\mathrm{int1}}=\qty{1}{\nano F}$};
+\draw (c1land) -- (U1A.-);
+ 
+% ------------------------------------------------------
+% U1B.+ [pin5] -> Vref
+% ------------------------------------------------------
+\draw (U1B.+) -- ++(-0.9,0) -- ++(0,-2.5) node[ocirc, label={below:$V_{\mathrm{ref}}$}]{};
+ 
+% ------------------------------------------------------
+% U1B.out [pin7] -> jog -> direct wire to CMP1.- (no resistor)
+%   and Cint2 loop
+% ------------------------------------------------------
+\draw (U1B.out) -- (U1B.- -| U1B.out) coordinate(u1bJog);
+\draw (u1bJog) node[circ]{};
+\draw (u1bJog) -- (CMP1.-);
+\draw (u1bJog) -- ++(0,1.0) coordinate(c2top);
+\draw (c2top) to[C] (c2top -| U1B.-) coordinate(c2land);
+\node[above=0.6cm] at ($(c2top)!0.5!(c2land)$) {$C_{\mathrm{int2}}=\qty{1}{\nano F}$};
+\draw (c2land) -- (U1B.-);
+ 
+% ------------------------------------------------------
+% CMP1 hysteresis network on CMP1.+ [pin3]
+%   The 10k (to Vref) and 100k (to N1) paths diverge in x
+%   IMMEDIATELY at the split, so their vertical runs never
+%   coincide -- this is what was overlapping before.
+% ------------------------------------------------------
+\draw (CMP1.+) -- ++(-0.5,0) coordinate(hystSplit);
+\draw (hystSplit) node[circ]{};
+ 
+\draw (hystSplit) -- ++(-1.0,0) coordinate(vref10);
+\draw (vref10) to[R, l_={$\qty{10}{\kilo\ohm}$}] ++(0,-2.5) node[ocirc, label={below:$V_{\mathrm{ref}}$}]{};
+ 
+\draw (hystSplit) to[R] ++(0,-4.2) coordinate(hystLow);
+\node[right] at ($(hystSplit)+(0.3,-2.1)$) {$\qty{100}{\kilo\ohm}$};
+\draw (hystLow) -- (hystLow -| N1) -- (N1);
+ 
+% ------------------------------------------------------
+% N1: jog right to CMP2.- (direct wire, no resistor), with
+% MISO and the pull-up tapped off distinct points along the
+% way so neither lines up with the Rfb1 rail or the hysteresis
+% path below.
+% ------------------------------------------------------
+\draw (N1) -- (CMP2.- -| N1) coordinate(n1jog);
+\draw (n1jog) node[circ]{};
+ 
+\draw (n1jog) -- ($(n1jog)+(0.6,0)$) coordinate(misoTap);
+\draw (misoTap) node[circ]{};
+\draw (misoTap) -- ($(misoTap)+(0.8,0)$) coordinate(pu1tap);
+\draw (pu1tap) node[circ]{};
+\draw (pu1tap) -- (CMP2.-);
+ 
+\draw (pu1tap) to[R, l={$\qty{10}{\kilo\ohm}$}] ++(0,1.6) coordinate(pu1top);
+\draw[-latex] (pu1top) -- ++(0,0.5) node[above]{$3.3\,\mathrm{V}$};
+ 
+\draw (misoTap) -- ++(0,-1.4) node[ocirc, label={below:MISO}]{};
+ 
+% Rfb1 rail: lands 0.4 to the left of U1A.- so its final
+% descent never coincides with the Cint1 loop's landing line.
+\coordinate (rfb1land) at ($(U1A.-)+(-0.4,0)$);
+\draw (N1) -- ++(0,6.0) coordinate(rfb1rail);
+\draw (rfb1rail) to[R, l={$R_{\mathrm{fb1}}=\qty{10}{\kilo\ohm}$}] (rfb1rail -| rfb1land) coordinate(rfb1corner);
+\draw (rfb1corner) -- (rfb1land) -- (U1A.-);
+ 
+% ------------------------------------------------------
+% CMP2.+ [pin5] -> Vref, direct (no resistor)
+% ------------------------------------------------------
+\draw (CMP2.+) -- ++(-0.9,0) -- ++(0,-2.5) node[ocirc, label={below:$V_{\mathrm{ref}}$}]{};
+ 
+% ------------------------------------------------------
+% N2: pull-up tapped off to the side, Rfb2 own rail landing
+% 0.4 to the left of U1B.- (clear of the Cint2 loop landing).
+% ------------------------------------------------------
+\draw (N2) -- ++(1.6,0) coordinate(pu2tap);
+\draw (pu2tap) node[circ]{};
+\draw (pu2tap) to[R, l={$\qty{10}{\kilo\ohm}$}] ++(0,1.6) coordinate(pu2top);
+\draw[-latex] (pu2top) -- ++(0,0.5) node[above]{$3.3\,\mathrm{V}$};
+ 
+\coordinate (rfb2land) at ($(U1B.-)+(-0.4,0)$);
+\draw (N2) -- ++(0,4.2) coordinate(rfb2rail);
+\draw (rfb2rail) to[R, l={$R_{\mathrm{fb2}}=\qty{10}{\kilo\ohm}$}] (rfb2rail -| rfb2land) coordinate(rfb2corner);
+\draw (rfb2corner) -- (rfb2land) -- (U1B.-);
+\end{circuitikz}
+\caption{Full discrete-component schematic. U1A and U1B are the two amplifiers of a single MCP6002; Comparator 1 and Comparator 2 are the two comparators of a single LM393, with Comparator 2 wired as a unity inverter feeding Rfb2. Component values as built; final values summarized in Table~\ref{tab:components}.}
+\label{fig:circuit_schematic}
+\end{figure}
 
 % ─────────────────────────────────────────────
 \section{Bring-Up Methodology}
@@ -76,8 +298,8 @@ for the design are listed in Table~\ref{tab:specs}.
 \label{section:dac_sign_error}
 
 % ------------------------------------------------------------
-\subsection{Debugging Highlight: Instrumentation Artefacts}
-\label{section:instrumentation_artefacts}
+\subsection{Debugging Highlight: Instrumentation artifcats}
+\label{section:instrumentation_artifcats}
 
 % ------------------------------------------------------------
 \section{Results}
